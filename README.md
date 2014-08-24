@@ -248,7 +248,8 @@ content to empty string instead of a `0` or `false` or `null` or `undefined`.
 #### spreader.add("json.path?!", action)
 
 Calls the action in every case, but transforms falsy values into the empty 
-string. Sometimes, you do want a want a `0`..
+string. Sometimes, you do want a `0`, and callbacks should get whatever
+is actually in the JSON, so this empty string business can't be the default.
 
 #### spreader.add("json.path[]", { array handler })
 
@@ -400,10 +401,11 @@ If there is no selector, one is constructed from the key name to which this
 rule applies, so the following are all equivalent:
 
 ```js
-spreader.add("foo.bar");
+spreader.add("foo.bar", "::text");
+spreader.add("foo.bar", ".foo-bar::text");
 spreader.add("foo.bar", ".foo-bar");
 spreader.add("foo.bar", { ".foo-bar": [] });
-spreader.add("foo.bar", ".foo-bar::text");
+spreader.add("foo.bar");
 ```
 
 as are the following:
