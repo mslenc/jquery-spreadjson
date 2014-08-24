@@ -28,7 +28,7 @@ var json = {
     summary: 'Lorem Ipsum FTW!',
     comments: [
         { author: 'John Smith', email: 'john@example.com', content: 'Does NOT seem that great' },
-        { author: 'Patty Smith', email: 'patty@example.com', content: 'Whining again, John...' },
+        { author: 'Patty Smith', email: 'patty@example.com', content: 'Whining again, John...' }
     ]
 };
 ```
@@ -48,7 +48,7 @@ $.spreadJson({
             'content': '.text'
         }
     },
-    'comments?': '.comments::show()',
+    'comments?': '.comments::show()'
 }, json);
 ```
 
@@ -71,6 +71,7 @@ You can also use it just one time and there are several conveniences built-in fo
 When the spreader is given JSON, you can think of it as walking the JSON tree, then calling actions with the
 data it finds. The path inside the tree determines which actions will be called, and the value they're provided
 with is always the JSON value (or subtree or array) at that path. For example, if you had JSON like this:
+
 ```js
 var json = {
     "id": 123,
@@ -81,7 +82,9 @@ var json = {
     "tags": [ "tag", "another" ]
 }
 ```
+
 Then, conceptually, something like this would happen:
+
 ```js
 // assuming callActions(match, data) finds actions and then calls them with data
 callActions("", json);
@@ -111,7 +114,7 @@ But then, it still wouldn't be very useful, because most lists have some unknown
 couldn't pre-prepare the DOM. And even if you could, the rule would end up something like
 this in most cases:
 
-```
+```js
 { "tags.*": ".tag-container.div:nth-child($num)" }
 ```
 
@@ -131,18 +134,25 @@ calls (which is mostly useful with add).
 
 #### $.spreadJson()
 Creates a new spreader object with no rules
+
 #### $.spreadJson(rules)
 Shortcut for `$.spreadJson().add(rules)`
+
 #### $.spreadJson(rules, json)
-Shortcut for `$.spreadJson().add(rules).spread(json, $(document))
+Shortcut for `$.spreadJson().add(rules).spread(json, $(document))`
+
 #### $.spreadJson(rules, json, container)
 Shortcut for `$.spreadJson().add(rules).spread(json, container);`
+
 #### $("selector").spreadJson(rules, json)
-Shortcut for `$.spreadJson().add(rules).spread(json, $("selector"))
+Shortcut for `$.spreadJson().add(rules).spread(json, $("selector"))`
+
 #### $("selector").spreadJson(spreader, json)
 Alternative form of `spreader.spread(json, $("selector"))`
+
 #### $("selector").spreadJson(json)
 Useful for the simplest cases. It walks the json, and constructs rules for fields it finds by mapping them to CSS classes. Doesn't work with data containing arrays. For example:
+
 ```js
 var json = {
     title: "Title",
@@ -153,7 +163,9 @@ var json = {
 };
 $("#post").spreadJson(json);
 ```
+
 is equivalent to:
+
 ```js
 var json = ...;
 $.spreadJson({
@@ -193,9 +205,11 @@ string, the rest are actions, and arrays are unpacked, recursively.
 
 Causes the action to be called only if data is truthy (which mostly matches Javascript's notion, except
 for empty arrays). Very similar to
-```
+
+```js
 spreader.add("json.path", function(data, container) { if (data) action(data, container); });
 ```
+
 Except for not executing on empty arrays, the point of this is that `action` doesn't have to be 
 function, but can be any of the other action specifications.
 
@@ -217,7 +231,8 @@ Used for handling arrays. See below.
 
 Converts the path into a CSS class by replacing dots with dashes and prepending another dot.
 Then uses that as the action, so the call above is equivalent to
-```
+
+```js
 spreader.add("json.path", ".json-path")
 ```
 
@@ -247,7 +262,7 @@ can then use for AJAX calls or something. If an error handler is specified, it w
 be called if the first argument to the callback is not a JSON object. The arguments to
 the error handler will be whatever the callback received.
 
-```
+```js
 var callback = $.jsonSpreader({ ... }).makeCallback(".results");
 $.getJSON("/api?whatever", callback);
 ```
@@ -332,7 +347,7 @@ So, if you just want to call a function that takes no parameters, this is the wa
 #### "selector"
 
 Finally, if there is no `::funcName` or `@attrName`, the result is equivalent to specifying `::text`, so it
-will set the content of the matched element. This is also true for actions specified inside `{ }`
+will set the content of the matched element. This is also true for actions specified inside `{ }`.
 
 
 Array handlers
@@ -342,6 +357,7 @@ As explained above, arrays get special treatment. There are currently two things
 than writing a completely custom handler callback, of course). The first case is useful for arrays of simple
 values which you just want to display. It joins them using a separator with optional text at the beginning 
 and end, and with an optional fallback for the empty case:
+
 ```js
 spreader.add("tags[]", {
     target: "#tags",
@@ -350,6 +366,7 @@ spreader.add("tags[]", {
     fallback: "no tags :(" 
 });
 ```
+
 The selector can include `::funcName` or `@attrName`, obviously. The default for `join` is `", "` and
 the default for `between` and `fallback` are empty strings, so if all you want is just a comma-separated
 list, you can simply write
@@ -363,6 +380,7 @@ The second thing you can do is to use a DOM template, which gets replicated for 
 an inner spreader on each of the elements in turn.
 
 The call to use looks like this:
+
 ```js
 spreader.add("comments[]", {
     template: ".comment", // this must select the whole list, not the parent element
@@ -371,10 +389,11 @@ spreader.add("comments[]", {
     fallback: { something: "other" }, // as if this were the only element; can also use an array or a function
     beforeUpdate: function(container, element), // called before an element is updated
     afterUpdate: function(container, element), // called after an element is updated
-    beforeDelete: function(container, element), // called before an element is deleted, preceded by beforeUpdate
+    beforeDelete: function(container), // called before an element is deleted, preceded by beforeUpdate
     afterCreate: function(container, element) // called after an element is created, followed by afterUpdate
 });
 ```
+
 Everything is optional, except for `template` and `spread`. Then, what will happen is the following:
 
 * If the array is empty (or not an array at all), the fallback will be used instead. The default fallback

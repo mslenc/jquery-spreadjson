@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>jquery-spreadjson test</title>
+	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+	<script src="../src/jquery-spreadjson.js"></script>
+</head>
+
+<body>
+	Just testing if the example in the documentation actually works :)
+
+	<h1><a>Loading...</a></h1>
+	<div class="summary"></div>
+	<div class="comments" style="display: none">
+		<div class="comment">
+			<div class="author"><a href="#"></a></div>
+			<div class="text"></div>
+		</div>
+	</div>
+
+    <div class="foo">
+        <div class="row">
+            <span></span>
+        </div>
+    </div>
+
+	<script>
+		$(function() {
+			var json = {
+				name: 'A Great Article',
+				link: 'http://www.example.com/',
+				summary: 'Lorem Ipsum FTW!',
+				comments: [
+                    { author: 'John Smith', email: 'john@example.com', content: 'Does NOT seem that great' },
+                    { author: 'Patty Smith', email: 'patty@example.com', content: 'Whining again, John...' },
+                    { author: 'Anonymous', content: 'You two should take your stuff elsewhere!' }
+				]
+			};
+
+			setTimeout(function() {
+				$.spreadJson({
+					'name': 'h1 a',
+					'link': 'h1 a@href',
+					'summary': '.summary::html',
+					'comments[]': {
+						'template': '.comment',
+						'spread': {
+							'author': '.author a',
+							'email': { '.author a@href': [ null, function(email) { return 'mailto:' + email } ] },
+							'content': '.text::text'
+						}
+					},
+					'comments?': '.comments::show()'
+				}, json);
+			}, 0);
+
+            var callback = $.spreadJson({
+                'rows[]': {
+                    template: '.row',
+                    spread: {
+                        'cols[]': 'span'
+                    }
+                }
+            }).makeCallback('.foo');
+
+            var animator = function() {
+                var rows = [];
+                var nRows = parseInt(15 + 10 * Math.sin(Date.now() * 0.0005));
+                for (var i = 0; i < nRows; i++) {
+                    var col = [];
+                    var nCols = parseInt(20 + 10 * Math.cos(Date.now() * 0.003 + 0.2 * i));
+                    while (col.length < nCols)
+                        col.push('#');
+                    rows.push({ cols: col });
+                }
+                callback({ rows: rows });
+                setTimeout(animator, 50);
+            };
+
+            if (false)
+            setTimeout(animator, 50);
+		});
+	</script>
+</body>
+</html>
