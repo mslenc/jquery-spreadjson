@@ -63,12 +63,7 @@ A single spreader object can be used multiple times, with either different
 JSON data, a different container, or both.
 
 You can also use it just one time and there are several conveniences built-in 
-for that. And, as mentioned on top, rule building can also be done by either 
-pulling rules from `data-js` attributes or by creating them from the JSON
-(creating them from `class` attributes would be a bad idea, because
-everything that didn't exist in JSON would be deleted, but also because
-it's very common to have multiple classes and choosing between them 
-would make things very non-simple)
+for that.
 
 ### How its thing is done
 
@@ -114,6 +109,18 @@ because of two things:
 One thing that's also missing above is that the container is passed around.
 It is.
 
+To handle `data-js` attributes, I intially thought I could build selector-based 
+rules as well, until I tried to implement it. But there's actually no reliable 
+way to build a selector that will match an element, except with an `id` (which 
+wouldn't work with arrays) or by matching on `data-js` itself, but that just 
+walks the whole DOM tree, AFAIK, and would limit the possible syntax in the 
+value a lot.
+
+So, the library just walks the DOM tree itself, then builds (and caches) 
+spreaders for each relevant element it finds. Feel free to add, remove and
+modify the `data-js` attribute as much as needed, as far as I can tell, it
+should all work (with future spreads).
+
 #### What about arrays?
 
 I guess paths (to match actions) could be constructed for those as well, but I
@@ -134,6 +141,90 @@ It just seems silly and slow, so (conceptual) walking simply stops when an array
 is encountered. Then, some utility actions are provided that allow you to
 "go in" and still do stuff.
 
+`data-js` reference
+===================
+
+#### data-js='json.path'
+To just pull in one value.
+
+```html
+<b data-js='author.name'></b> (<span data-js='author.email'></span>)
+```
+
+#### data-js='@attr=json.path|filter'
+To just set one attribute. The filter is optional, and if present,
+is looked up in `$.spreadJson.filters`. Feel free to add whatever you
+need in there.
+
+```html
+<a data-js='@href=author.email|mailto'></a>
+````
+
+#### data-js='foo,@attr=bar,::show()=baz?,span.child::html=json.path_html'
+
+You can combine multiple rules with a comma. And the truth is that
+on the left side of `=` you can put any selector, as with the usual
+rules. The selector will match stuff with the element as the context.
+If it's missing, it defaults to '.', which means the element itself.
+On the right hand, you can use `?`, `!` and `?!`, and I have no idea
+what happens with `[]`, likely nothing good (will look into it when
+I need it..)
+
+#### data-js-list='path.to.array'
+
+Put this attribute on the templates for arrays. If there are multiple
+instantiations pre-rendered, put it on all of them. What then happens
+is very similar to normal array processing, so read about it there..
+(there are no callbacks called)
+
+So, for this JSON:
+
+```json
+{
+    ...,
+    "comments": [
+        { "text": "First comment!!!", ... },
+        { "text": "Second comment!!!", ... }
+    ]
+}
+```
+
+The template might look like this (if it had two comments pre-rendered):
+
+```html
+<div id="comment_list">
+    <div data-js-list="comments">
+        <div data-js="text">First comment!!!</div>
+    </div>
+    <div data-js-list="comments">
+        <div data-js="text">Second comment!!!</div>
+    </div>
+</div>
+```
+
+Or, if it was not pre-rendered, maybe something like this:
+
+```html
+<div data-js="::show()=comments?" style="display: none" id="comment_list">
+    <div data-js-list="comments">
+        <div data-js="text"></div>
+    </div>
+</div>
+```
+
+Then, you can render stuff with something like:
+
+```js
+$.spreadJson({
+   // other/explicit rules, if needed
+}, json, "#comment_list");
+// (the #comment_list selector is not even needed in most cases,
+// but likely speeds things up)
+```
+
+Currently, you can't use both `data-js` and `data-js-list` on the same element.
+I like the idea, though (for single element templates), so it will probably work 
+eventually.
 
 API reference
 =============
@@ -491,7 +582,5 @@ happen is the following:
 Status
 ======
 
-Currently, most everything seems to work as described, except the following
-are missing:
-* `data-js` parsing (the simple case is easy, but have to figure out what to
-  exactly to do with arrays)
+Currently, everything seems to work as described. The library is already used
+in production :)

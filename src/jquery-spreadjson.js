@@ -232,35 +232,14 @@ var buildJoiner = function(spec) {
     };
 };
 
-var addActionArray = function(spec, props, out) {
-    if ('target' in spec) {
-        addActionSelector(spec.target, buildJoiner(spec), props, out);
-        return;
-    }
-
-    var template = spec.template;
-    if (!isString(template))
-        return;
-
+var makeArrayHandler = function(spec, elsFinder, deepClone, fallback) {
     var spreader = spec.spread;
-    if (!spreader)
-        return;
-    if (!is(spreader, Spreader))
-        spreader = $.spreadJson(spreader);
-    if (!spreader.actions.length)
-        return;
 
-    var deepClone = spec.deepClone || false;
-
-    var fallback = has(spec, 'fallback') ? spec.fallback : [ ];
-    if (!isArray(fallback))
-        fallback = [ fallback ];
-
-    addActionCallback(function(array, container) {
+    return function(array, container) {
         if (!isArray(array) || array.length == 0)
             array = fallback;
 
-        var domEls = container.find(template);
+        var domEls = elsFinder(container);
         if (domEls.length < 1)
             return;
 
@@ -305,7 +284,36 @@ var addActionArray = function(spec, props, out) {
             if (spec.afterUpdate)
                 spec.afterUpdate(domCont, array[i]);
         }
-    }, props, out);
+    }
+};
+
+var addActionArray = function(spec, props, out) {
+    if ('target' in spec) {
+        addActionSelector(spec.target, buildJoiner(spec), props, out);
+        return;
+    }
+
+    var template = spec.template;
+    if (!isString(template))
+        return;
+
+    var spreader = spec.spread;
+    if (!spreader)
+        return;
+    if (!is(spreader, Spreader))
+        spreader = spec.spread = $.spreadJson(spreader);
+    if (!spreader.actions.length)
+        return;
+
+    var deepClone = spec.deepClone || false;
+
+    var fallback = has(spec, 'fallback') ? spec.fallback : [ ];
+    if (!isArray(fallback))
+        fallback = [ fallback ];
+
+    var elsFinder = function(container) { return container.find(template); };
+
+    addActionCallback(makeArrayHandler(spec, elsFinder, deepClone, fallback), props, out);
 };
 
 var addAction = function(actionSpec, props, out) {
@@ -414,11 +422,9 @@ var extract = function(path, json) {
 
 var buildDataWorker = function(props) {
     var spreader = $.spreadJson();
-    var parts = props.split(',');
+    var parts = props && props.split(',') || [ "" ];
     for (var i = 0; i < parts.length; i++) {
         var part = parts[i].trim();
-        if (!part)
-            continue;
         // each part is
         // - selector = path
         // - path
@@ -433,6 +439,8 @@ var buildDataWorker = function(props) {
             path = tmp[0].trim();
         } else {
             selector = tmp[0].trim() || '.';
+            if (beginsWith(selector, "::") || beginsWith(selector, "@"))
+                selector = "." + selector;
             path = tmp[1].trim();
         }
 
@@ -459,17 +467,28 @@ var buildDataWorker = function(props) {
     return spreader;
 };
 
+var _workers = {};
+
 var doDataProps = function(json, props, container) {
-    var src = $.data(container, 'spreadjson-src');
-    if (src !== props) {
-        $.data(container, 'spreadjson-src', src);
-        $.data(container, 'spreadjson-worker', buildDataWorker(props));
-    }
-    $.data(container, 'spreadjson-worker').spread(json, container);
+    if (!(props in _workers))
+        _workers[props] = buildDataWorker(props);
+
+    _workers[props].spread(json, container);
 };
 
 var doDataList = function(json, arrayPath, container) {
-
+    var arrHandler = $.data(container, 'spreadjson-arrhandler');
+    if (!arrHandler) {
+        var spec = { spread: { spread: doData } };
+        var elsFinder = function() {
+            return container.parent().find('[data-js-list=' + arrayPath + ']')
+        };
+        arrHandler = makeArrayHandler(spec, elsFinder, true, []);
+        arrHandler.path = arrayPath && arrayPath.split(".") || [];
+        $.data(container, 'spreadjson-arrhandler', arrHandler);
+    }
+    var array = extract(arrHandler.path, json);
+    arrHandler(array);
 };
 
 var doData = function(json, container) {
@@ -591,7 +610,7 @@ $.fn.spreadJson = function(rules, json, container) {
 };
 
 $.spreadJson.filters = {
-    mailto: function(email) { return isString(email) && email ? 'mailto:' + email : ''; },
+    mailto: function(email) { return isString(email) && email ? 'mailto:' + email : null; },
     nbsp: function(text) { return isString(text) ? text.replace(' ', '\u00a0') : '' }
 };
 

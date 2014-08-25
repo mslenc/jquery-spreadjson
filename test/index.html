@@ -7,7 +7,57 @@
 	<script src="../src/jquery-spreadjson.js"></script>
     <style type="text/css">
         .js-list-empty {
-            background: orange;
+            visibility: hidden;
+        }
+
+        h1, h2, h3, h4 {
+            margin: 0;
+            font-family: 'ubuntu sans', sans-serif;
+            font-weight: normal;
+        }
+
+        h2 {
+            font-size: 16pt;
+        }
+
+        a {
+            color: #009;
+        }
+
+        td {
+            vertical-align: top;
+        }
+
+        table {
+            border-spacing: 1em;
+        }
+
+        .container {
+            padding: 1em;
+            border: 1px solid gray;
+            margin-bottom: 1em;
+        }
+
+        .comments {
+            margin-top: 1em;
+        }
+
+        .comment {
+            font-size: 90%;
+            margin-top: 0.5em;
+        }
+
+        .author {
+            padding-left: 2em;
+            font-size: 90%;
+        }
+
+        .foo {
+            font-size: 10px;
+            line-height: 10px;
+            font-family: monospace;
+            min-width: 55em;
+            min-height: 40em;
         }
     </style>
 </head>
@@ -15,8 +65,9 @@
 <body>
     <table>
         <tr>
-            <th><h1>Very simple stuff</h1></th>
+            <th><h1>Simple stuff</h1></th>
             <th><h1>Some arrays</h1></th>
+            <th><h1>More to come..</h1></th>
 	    </tr>
         <tr>
             <td>
@@ -75,7 +126,7 @@
                         <div class="comment">
                             <div class="content">You two should take your stuff elsewhere!</div>
                             <div class="author">
-                                by <b>Anonymous</b> -- <a>Send email</a>
+                                by <b>Anonymous</b> -- <a style="display:none">Send email</a>
                             </div>
                         </div>
                     </div>
@@ -88,8 +139,8 @@
                     <div class="comments">
                         <div class="comment" data-js-list="comments">
                             <div class="content" data-js="content">Wrong</div>
-                            <div class="author">
-                                by <b data-js="author">Wrong</b> -- <a href="Wrong" data-js="@href=email|mailto">Send email</a>
+                            <div class="author" data-js="b=author,::show()=author?" style="display:none">
+                                by <b>Wrong</b> -- <a href="Wrong" data-js="@href=email|mailto,::hide()=email!">Send email</a>
                             </div>
                         </div>
                     </div>
@@ -102,23 +153,28 @@
                     <div class="comments">
                         <div class="comment">
                             <div class="content">Wrong</div>
-                            <div class="author">
+                            <div class="author" style="display:none">
                                 by <b>Wrong</b> -- <a href="Wrong">Send email</a>
                             </div>
                         </div>
                     </div>
                 </div>
             </td>
+
+            <td>
+                <h2>Some gratuitous JSON-based animation</h2>
+                <div class="foo container">
+                    <div class="row">
+                        <span class="cols"></span>
+                    </div>
+                </div>
+                <span style="color: gray; font-size: 80%">
+                (tests multiple updates, adding and removing template
+                instances, and simple array joins)
+                </span>
+            </td>
         </tr>
     </table>
-
-    and.. some gratuitous animation..
-
-    <div class="foo">
-        <div class="row">
-            <span class="cols"></span>
-        </div>
-    </div>
 
 	<script>
 		$(function() {
@@ -159,39 +215,57 @@
             $.spreadJson([], test2, "#test2_jsdata");
 
             var mailto = $.spreadJson.filters.mailto;
-            
-			setTimeout(function() {
-				$.spreadJson({
-					'name': 'h3 a',
-					'link': 'h3 a@href',
-					'summary': '.summary::html',
-					'comments[]': {
-						'template': '.comment',
-						'spread': {
-							'author': '.author b',
-							'email': { '.author a@href': [ null, mailto ] },
-							'content': '' // should be the same as .content::text
-						}
-					},
-					'comments?': '.comments::show()'
-				}, test2, '#test2_rules');
-			}, 500);
+
+            $.spreadJson({
+                'name': 'h3 a',
+                'link': 'h3 a@href',
+                'summary': '.summary::html',
+                'comments[]': {
+                    'template': '.comment',
+                    'spread': {
+                        'author': '.author b',
+                        'author?': '::show()',
+                        'email': { '.author a@href': [ null, mailto ] },
+                        'email!': 'a::hide()',
+                        'content': '' // should be the same as .content::text
+                    }
+                },
+                'comments?': '.comments::show()'
+            }, test2, '#test2_rules');
+
+
+
+            var test3 = {
+                tags: [ "foo", "tag", "bar" ]
+            };
+            $("#test3").spreadJson({
+
+            }, test3);
+
 
             var callback = $.spreadJson({
                 'rows[]': {
                     template: '.row',
-                    spread: [ 'cols[]' ]
+                    spread: {
+                        'cols[]': {
+                            target: '.cols',
+                            join: '▞',
+                            between: [ '▐', '▶' ],
+                            fallback: '!)'
+                        }
+                    }
                 }
             }).makeCallback('.foo');
 
             var animator = function() {
                 var rows = [];
-                var nRows = parseInt(15 + 15 * Math.sin(Date.now() * 0.0005));
+                var now = Date.now() * 0.0004;
+                var nRows = parseInt(35 + 5 * Math.sin(now * 0.5));
                 for (var i = 0; i < nRows; i++) {
                     var col = [];
-                    var nCols = parseInt(20 + 20 * Math.cos(Date.now() * 0.003 + 0.2 * i));
+                    var nCols = parseInt(20 + 10 * Math.cos(3 * now + i * 0.2) + 6 * Math.sin(1.2 * now + i * 0.4));
                     while (col.length < nCols)
-                        col.push('#');
+                        col.push('█');
                     rows.push({ cols: col });
                 }
                 callback({ rows: rows });
