@@ -16,7 +16,7 @@
 
 (function($, undefined) {
 
-// some utilities
+// some utilities..
 var toString = Object.prototype.toString;
 var hasOwnProperty = Object.prototype.hasOwnProperty;
 
@@ -195,16 +195,19 @@ var addActionArray = function(spec, props, out) {
         if (falsy(array))
             array = spec.fallback || [ ];
         if (!isArray(array))
-            return;
+            array = [ array ];
+
+        var deepClone = spec.deepClone || false;
 
         var domEls = container.find(template);
         if (domEls.length < 1)
             return;
 
-        var leave = Math.min(array.length, domEls.length);
-        for (var i = domEls.length - 1; i >= leave; i--) {
-            var domEl = domEls[i];
-            var domCont = $(domEl);
+        var i, domCont;
+
+        var leave = Math.max(1, Math.min(array.length, domEls.length));
+        for (i = domEls.length - 1; i >= leave; i--) {
+            domCont = $(domEls[i]);
             if (spec.beforeUpdate)
                 spec.beforeUpdate(domCont, null);
             if (spec.beforeDelete)
@@ -212,13 +215,16 @@ var addActionArray = function(spec, props, out) {
             domCont.remove();
         }
 
-        if (!array.length)
+        if (array.length > 0) {
+            $(domEls[0]).removeClass('js-list-empty');
+        } else {
+            $(domEls[0]).addClass('js-list-empty');
             return;
+        }
 
         domEls.length = leave;
-        for (var i = 0; i < domEls.length; i++) {
-            var domEl = domEls[i];
-            var domCont = $(domEl);
+        for (i = 0; i < domEls.length; i++) {
+            domCont = $(domEls[i]);
             if (spec.beforeUpdate)
                 spec.beforeUpdate(domCont, array[i]);
             spreader.spread(array[i], domCont);
@@ -227,8 +233,8 @@ var addActionArray = function(spec, props, out) {
         }
 
         var last = $(domEls[domEls.length - 1]);
-        for (var i = domEls.length; i < array.length; i++) {
-            var domCont = last.clone(spec.deepClone);
+        for (i = domEls.length; i < array.length; i++) {
+            domCont = last.clone(deepClone);
             last.after(domCont);
             last = domCont;
 

@@ -497,4 +497,3 @@ are missing:
   exactly to do with arrays)
 * `between` with simple array joining
 * actions without selectors (just `::funcName` or `@attrName`)
-* class `js-list-empty` is not added yet
