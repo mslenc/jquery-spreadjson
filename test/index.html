@@ -5,17 +5,22 @@
 	<title>jquery-spreadjson test</title>
 	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
 	<script src="../src/jquery-spreadjson.js"></script>
+    <style type="text/css">
+        .js-list-empty {
+            background: orange;
+        }
+    </style>
 </head>
 
 <body>
-	Just testing if the example in the documentation actually works :)
+	Just testing if the examples in the documentation actually work :)
 
-	<h1><a>Loading...</a></h1>
+	<h1><a class="link">Loading...</a></h1>
 	<div class="summary"></div>
 	<div class="comments" style="display: none">
 		<div class="comment">
 			<div class="author"><a href="#"></a></div>
-			<div class="text"></div>
+			<div class="content"></div>
 		</div>
 	</div>
 
@@ -41,14 +46,14 @@
 			setTimeout(function() {
 				$.spreadJson({
 					'name': 'h1 a',
-					'link': 'h1 a@href',
+					'link': '@href',
 					'summary': '.summary::html',
 					'comments[]': {
 						'template': '.comment',
 						'spread': {
 							'author': '.author a',
 							'email': { '.author a@href': [ null, function(email) { return 'mailto:' + email } ] },
-							'content': '.text::text'
+							'content': '' // should be the same as .content::text
 						}
 					},
 					'comments?': '.comments::show()'
@@ -59,17 +64,22 @@
                 'rows[]': {
                     template: '.row',
                     spread: {
-                        'cols[]': 'span'
+                        'cols[]': {
+                            target: 'span',
+                            join: ':',
+                            between: [ '(', ')' ],
+                            fallback: '!!!!'
+                        }
                     }
                 }
             }).makeCallback('.foo');
 
             var animator = function() {
                 var rows = [];
-                var nRows = parseInt(15 + 10 * Math.sin(Date.now() * 0.0005));
+                var nRows = parseInt(15 + 15 * Math.sin(Date.now() * 0.0005));
                 for (var i = 0; i < nRows; i++) {
                     var col = [];
-                    var nCols = parseInt(20 + 10 * Math.cos(Date.now() * 0.003 + 0.2 * i));
+                    var nCols = parseInt(20 + 20 * Math.cos(Date.now() * 0.003 + 0.2 * i));
                     while (col.length < nCols)
                         col.push('#');
                     rows.push({ cols: col });
@@ -78,7 +88,7 @@
                 setTimeout(animator, 50);
             };
 
-            if (false)
+            if (true)
             setTimeout(animator, 50);
 		});
 	</script>

@@ -495,5 +495,3 @@ Currently, most everything seems to work as described, except the following
 are missing:
 * `data-js` parsing (the simple case is easy, but have to figure out what to
   exactly to do with arrays)
-* `between` with simple array joining
-* actions without selectors (just `::funcName` or `@attrName`)

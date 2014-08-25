@@ -38,12 +38,8 @@ var is = function(obj, klass) {
 var has = function(obj, key) {
     return hasOwnProperty.call(obj, key);
 };
-var slice = Array.prototype.slice
 var falsy = function(obj) {
     return obj ? (isArray(obj) ? !obj.length : false) : true;
-};
-var truthy = function(obj) {
-    return !falsy(obj);
 };
 var copy = function(obj) {
     var res = { };
@@ -54,6 +50,9 @@ var copy = function(obj) {
 
 function endsWith(str, ending) {
     return str.indexOf(ending, str.length - ending.length) !== -1;
+}
+function beginsWith(str, beginning) {
+    return str.indexOf(beginning) === 0;
 }
 
 function Spreader() {
@@ -67,7 +66,7 @@ var addActionCallback = function(callback, props, out) {
 };
 
 var addActionString = function(string, props, out) {
-    if (string.endsWith('()')) {
+    if (endsWith(string, '()')) {
         addActionSelector(string.substring(0, string.length - 2), undefined, props, out);
     } else {
         addActionSelector(string, [], props, out);
@@ -108,68 +107,116 @@ var makeFilter = function(spec) {
     return function() { return spec; };
 };
 
+function pathToClass(path) {
+    return '.' + (isArray(path) ? path.join('-') : path.replace('.', '-'));
+}
+
+
 var addActionSelector = function(selector, value, props, out) {
     var filter = makeFilter(value);
-    var tmp = selector.split("::");
+
+    var hasFunc = selector.indexOf('::') >= 0;
+    var hasAttr = !hasFunc && selector.indexOf('@') >= 0;
+
+    if (!hasFunc && !hasAttr) {
+        selector += '::text';
+        hasFunc = true;
+    }
+
+    if (beginsWith(selector, '::') || beginsWith(selector, '@')) {
+        selector = pathToClass(props.path) + selector;
+    }
+
+    var tmp = hasFunc ? selector.split("::") : selector.split('@');
     if (tmp.length > 2)
         return;
-    if (filter === undefined) {
-        // must be a function call
-        if (tmp.length == 2) {
-            var sel = tmp[0];
-            var funcName = tmp[1];
+
+    var sel = tmp[0].trim(), name = tmp[1].trim();
+    if (!name.length)
+        return;
+
+    var finder;
+    if (!sel) { // empty json path and empty selector - so apply to container
+        finder = identity;
+    } else {
+        finder = function(container) {
+            return container.find(sel);
+        };
+    }
+
+    if (filter === undefined) { // call with no arguments
+        // so must be a function call
+        if (hasFunc) {
             addActionCallback(function(data, container) {
-                container.find(sel)[funcName]();
+                finder(container)[name]();
             }, props, out);
         }
         return;
     }
 
-    if (tmp.length === 2) {
-        var sel = tmp[0];
-        var funcName = tmp[1];
+    if (hasFunc) { // call function
         addActionCallback(function(data, container) {
             var res = filter(data);
             if (res === undefined)
                 return;
-            container.find(sel)[funcName](res);
+            finder(container)[name](res);
         }, props, out);
         return;
     }
 
-    tmp = selector.split('@');
-    if (tmp.length === 2) {
-        var sel = tmp[0];
-        var attr = tmp[1];
+    if (hasAttr) { // set attribute
         addActionCallback(function(data, container) {
             var attrVal = filter(data);
             if (attrVal === undefined)
                 return;
+
             if (attrVal === null) {
-                container.find(sel).removeAttr(attr);
+                finder(container).removeAttr(name);
             } else {
-                container.find(sel).attr(attr, attrVal);
+                finder(container).attr(name, attrVal);
             }
         }, props, out);
         return;
     }
 
-    addActionCallback(function(data, container) {
-        var text = filter(data);
-        if (text === undefined)
-            return;
-        container.find(selector).text(text);
-    }, props, out);
+    // maybe some other cases later
 };
 
 var buildJoiner = function(spec) {
     var sep = has(spec, 'join') ? spec.join : ', ';
-    var fallback = has(spec, 'fallback') ? spec.fallback : [];
-    return function(data) {
-        if (falsy(data) && !isArray(data))
-            return fallback;
 
-        return data.join(sep);
+    var fallback = has(spec, 'fallback') ? spec.fallback : "";
+    if (isArray(fallback) && fallback.length == 0)
+        fallback = "";
+
+    var between = spec.between;
+    if (isString(between)) {
+        between = [ between, between ];
+    } else
+    if (isArray(between)) {
+        if (between.length == 0) {
+            between = undefined;
+        } else
+        if (between.length == 1) {
+            between = [ between[0], between[0] ];
+        }
+    } else {
+        between = undefined;
+    }
+
+    return function(data) {
+        if (falsy(data)) {
+            data = fallback;
+            if (!isArray(data))
+                return data;
+        }
+
+        var joined = data.join(sep);
+        if (between) {
+            return between[0] + joined + between[1];
+        } else {
+            return joined;
+        }
     };
 };
 
@@ -279,12 +326,12 @@ var addPath = function(path) {
     var props;
     var suffix = 0;
     var isArray = false, runTruthy = true, runFalsy = true, toEmpty = false;
-    if (path.endsWith('[]')) {
+    if (endsWith(path, '[]')) {
         suffix = 2;
         isArray = true;
     } else
-    if (path.endsWith('!')) {
-        if (path.endsWith('?!')) {
+    if (endsWith(path, '!')) {
+        if (endsWith(path, '?!')) {
             suffix = 2;
             toEmpty = true;
         } else {
@@ -293,7 +340,7 @@ var addPath = function(path) {
             toEmpty = true;
         }
     } else
-    if (path.endsWith('?')) {
+    if (endsWith(path, '?')) {
         suffix = 1;
         runFalsy = false;
     }
@@ -305,7 +352,7 @@ var addPath = function(path) {
         isArray: isArray,
         runTruthy: runTruthy,
         runFalsy: runFalsy,
-        toEmpty: false,
+        toEmpty: toEmpty,
         path: path ? path.split('.') : []
     };
 
@@ -319,7 +366,7 @@ Spreader.prototype.add = function() {
 
     if (isString(arguments[0])) {
         if (arguments.length === 1) {
-            addPath.call(this, match, '.' + match.replace('.', '-'));
+            addPath.call(this, arguments[0], pathToClass(arguments[0]));
         } else {
             addPath.apply(this, arguments);
         }
