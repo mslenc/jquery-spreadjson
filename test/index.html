@@ -26,7 +26,7 @@
 
     <div class="foo">
         <div class="row">
-            <span></span>
+            <span class="cols"></span>
         </div>
     </div>
 
@@ -63,14 +63,7 @@
             var callback = $.spreadJson({
                 'rows[]': {
                     template: '.row',
-                    spread: {
-                        'cols[]': {
-                            target: 'span',
-                            join: ':',
-                            between: [ '(', ')' ],
-                            fallback: '!!!!'
-                        }
-                    }
+                    spread: [ 'cols[]' ]
                 }
             }).makeCallback('.foo');
 

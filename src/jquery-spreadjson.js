@@ -76,8 +76,8 @@ var addActionString = function(string, props, out) {
 var identity = function(a) { return a; };
 
 var makeFilter = function(spec) {
-    if (spec === undefined)
-        return undefined;
+    if (spec === undefined || isFunction(spec))
+        return spec;
 
     if (isArray(spec)) {
         if (spec.length === 0)
@@ -101,9 +101,6 @@ var makeFilter = function(spec) {
         };
     }
 
-    if (isFunction(spec))
-        return spec;
-
     return function() { return spec; };
 };
 
@@ -111,6 +108,18 @@ function pathToClass(path) {
     return '.' + (isArray(path) ? path.join('-') : path.replace('.', '-'));
 }
 
+var _suffixes = ['[]', '?!', '?', '!', ''];
+function extractSuffix(path) {
+    for (var i = 0; i < _suffixes.length; i++) {
+        var suffix = _suffixes[i];
+        if (endsWith(path, suffix)) {
+            return {
+                path: path.substring(0, path.length - suffix.length),
+                suffix: suffix
+            };
+        }
+    }
+}
 
 var addActionSelector = function(selector, value, props, out) {
     var filter = makeFilter(value);
@@ -322,39 +331,32 @@ var addAction = function(actionSpec, props, out) {
     }
 };
 
-var addPath = function(path) {
-    var props;
-    var suffix = 0;
-    var isArray = false, runTruthy = true, runFalsy = true, toEmpty = false;
-    if (endsWith(path, '[]')) {
-        suffix = 2;
-        isArray = true;
-    } else
-    if (endsWith(path, '!')) {
-        if (endsWith(path, '?!')) {
-            suffix = 2;
-            toEmpty = true;
-        } else {
-            suffix = 1;
-            runTruthy = false;
-            toEmpty = true;
-        }
-    } else
-    if (endsWith(path, '?')) {
-        suffix = 1;
-        runFalsy = false;
-    }
+var addPath = function(pathWithSuffix) {
+    var tmp = extractSuffix(pathWithSuffix);
 
-    if (suffix > 0)
-        path = path.substring(0, path.length - suffix);
-
-    props = {
-        isArray: isArray,
-        runTruthy: runTruthy,
-        runFalsy: runFalsy,
-        toEmpty: toEmpty,
-        path: path ? path.split('.') : []
+    var props = {
+        isArray: false,
+        runTruthy: true,
+        runFalsy: true,
+        toEmpty: false,
+        path: tmp.path ? tmp.path.split('.') : []
     };
+
+    switch (tmp.suffix) {
+        case '[]':
+            props.isArray = true;
+            break;
+        case '?!':
+            props.toEmpty = true;
+            break;
+        case '?':
+            props.runFalsy = false;
+            break;
+        case '!':
+            props.runTruthy = false;
+            props.toEmpty = true;
+            break;
+    }
 
     for (var i = 1; i < arguments.length; i++)
         addAction(arguments[i], props, this);
@@ -366,7 +368,7 @@ Spreader.prototype.add = function() {
 
     if (isString(arguments[0])) {
         if (arguments.length === 1) {
-            addPath.call(this, arguments[0], pathToClass(arguments[0]));
+            addPath.call(this, arguments[0], pathToClass(extractSuffix(arguments[0]).path));
         } else {
             addPath.apply(this, arguments);
         }
