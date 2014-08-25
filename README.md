@@ -23,7 +23,7 @@ TL;DR: take JSON, stuff it into DOM. Specify the mapping by:
     spreader.add({
         'author.name': '.author h4',
         'author.email': { '.author a.contact@href': mailto },
-        'author?': '.author-container::show()'
+        'author?': '::show()'
     });
     ```
 

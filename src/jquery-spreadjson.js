@@ -144,8 +144,11 @@ var addActionSelector = function(selector, value, props, out) {
     if (!name.length)
         return;
 
+    if (sel === '.')
+        sel = '';
+
     var finder;
-    if (!sel) { // empty json path and empty selector - so apply to container
+    if (!sel) {
         finder = identity;
     } else {
         finder = function(container) {
@@ -247,13 +250,15 @@ var addActionArray = function(spec, props, out) {
     if (!spreader.actions.length)
         return;
 
-    addActionCallback(function(array, container) {
-        if (falsy(array))
-            array = spec.fallback || [ ];
-        if (!isArray(array))
-            array = [ array ];
+    var deepClone = spec.deepClone || false;
 
-        var deepClone = spec.deepClone || false;
+    var fallback = has(spec, 'fallback') ? spec.fallback : [ ];
+    if (!isArray(fallback))
+        fallback = [ fallback ];
+
+    addActionCallback(function(array, container) {
+        if (!isArray(array) || array.length == 0)
+            array = fallback;
 
         var domEls = container.find(template);
         if (domEls.length < 1)
@@ -407,6 +412,93 @@ var extract = function(path, json) {
     return curr;
 };
 
+var buildDataWorker = function(props) {
+    var spreader = $.spreadJson();
+    var parts = props.split(',');
+    for (var i = 0; i < parts.length; i++) {
+        var part = parts[i].trim();
+        if (!part)
+            continue;
+        // each part is
+        // - selector = path
+        // - path
+        // and path can have | filter
+        var tmp = part.split('=');
+        if (tmp.length > 2)
+            continue;
+
+        var selector, path;
+        if (tmp.length == 1) {
+            selector = '.';
+            path = tmp[0].trim();
+        } else {
+            selector = tmp[0].trim() || '.';
+            path = tmp[1].trim();
+        }
+
+        var filter;
+        tmp = path.split('|');
+        if (tmp.length > 2)
+            continue;
+        if (tmp.length == 2) {
+            path = tmp[0].trim();
+            filter = $.spreadJson.filters[tmp[1].trim()] || [];
+        } else {
+            filter = [];
+        }
+
+        if (endsWith(selector, '()')) {
+            selector = selector.substring(0, selector.length - 2).trim();
+            filter = undefined;
+        }
+
+        var op = {};
+        op[selector] = filter;
+        addPath.call(spreader, path, op);
+    }
+    return spreader;
+};
+
+var doDataProps = function(json, props, container) {
+    var src = $.data(container, 'spreadjson-src');
+    if (src !== props) {
+        $.data(container, 'spreadjson-src', src);
+        $.data(container, 'spreadjson-worker', buildDataWorker(props));
+    }
+    $.data(container, 'spreadjson-worker').spread(json, container);
+};
+
+var doDataList = function(json, arrayPath, container) {
+
+};
+
+var doData = function(json, container) {
+    var children = container.children();
+    var listsDone = false;
+    var child = false;
+    for (var i = 0; i < children.length; i++) {
+        // don't create so many objects when not really needed
+        child ? child.init(children[i]) : child = $(children[i]);
+
+        var arraySource = child.attr('data-js-list');
+        if (isString(arraySource)) {
+            if (listsDone && arraySource in listsDone)
+                continue;
+            (listsDone || (listsDone = { }))[arraySource] = true;
+
+            doDataList(json, arraySource, $(child[0]));
+            continue;
+        }
+
+        var props = child.attr('data-js');
+        if (isString(props)) {
+            doDataProps(json, props, $(child[0]));
+        }
+
+        doData(json, child);
+    }
+};
+
 Spreader.prototype.spread = function(json, container) {
     if (!isObject(json))
         return this;
@@ -437,6 +529,9 @@ Spreader.prototype.spread = function(json, container) {
         action.callback.call(null, value, container);
     }
 
+    if (container.length != 0)
+        doData(json, container);
+
     return this;
 };
 
@@ -457,17 +552,20 @@ var findKeys = function(json, prefix, res) {
         if (!has(json, key))
             continue;
 
-        res.push(prefix + key);
+        var path = prefix + key;
         var child = json[key];
+        if (!isArray(child) && !isObject(child))
+            res[path] = pathToClass(path);
+
         if (isObject(child)) {
-            findKeys(child, prefix + key + '-', res);
+            findKeys(child, prefix + key + '.', res);
         }
     }
 };
 
 var autoRulesFromJson = function(json) {
-    var res = [];
-    findKeys(json, ".", res);
+    var res = { };
+    findKeys(json, "", res);
     return res;
 };
 
@@ -490,6 +588,11 @@ $.fn.spreadJson = function(rules, json, container) {
     } else {
         return $.spreadJson(rules, json, this);
     }
+};
+
+$.spreadJson.filters = {
+    mailto: function(email) { return isString(email) && email ? 'mailto:' + email : ''; },
+    nbsp: function(text) { return isString(text) ? text.replace(' ', '\u00a0') : '' }
 };
 
 })(jQuery);

@@ -13,16 +13,106 @@
 </head>
 
 <body>
-	Just testing if the examples in the documentation actually work :)
+    <table>
+        <tr>
+            <th><h1>Very simple stuff</h1></th>
+            <th><h1>Some arrays</h1></th>
+	    </tr>
+        <tr>
+            <td>
+                <h2>Expected result</h2>
+                <div class="container">
+                    <h3>Title</h3>
+                    <h4>Subtitle</h4>
+                    by <span>John Smith</span> (<span>john@example.com</span>)
+                    <div class="the-text">
+                        Lorem ipsum FTW!
+                    </div>
+                </div>
 
-	<h1><a class="link">Loading...</a></h1>
-	<div class="summary"></div>
-	<div class="comments" style="display: none">
-		<div class="comment">
-			<div class="author"><a href="#"></a></div>
-			<div class="content"></div>
-		</div>
-	</div>
+                <h2>with class names</h2>
+                <div class="container" id="test1_simple">
+                    <h3 class="title">Loading...</h3>
+                    <h4 class="subtitle"></h4>
+                    by <span class="author-name">...</span> (<span class="author-email"></span>)
+                    <div class="the-text text"></div>
+                </div>
+
+                <h2>with data-js attributes</h2>
+                <div class="container" id="test1_jsdata">
+                    <h3 data-js="title"></h3>
+                    <h4 data-js="subtitle">Loading as well...</h4>
+                    by <span data-js="author.name"></span> (<span data-js="author.email"></span>)
+                    <div class="the-text" data-js="text"></div>
+                </div>
+
+                <h2>with explicit rules</h2>
+                <div class="container" id="test1_rules">
+                    <h3>...</h3>
+                    <h4>...</h4>
+                    by <span class="name"></span> (<span class="email"></span>)
+                    <div class="the-text"></div>
+                </div>
+            </td>
+            <td>
+                <h2>Expected result</h2>
+                <div class="container">
+                    <h3><a href="http://www.example.com/">A Great Article</a></h3>
+                    <div class="summary">Lorem Ipsum <b><i>FTW!</i></b></div>
+                    <div class="comments">
+                        <div class="comment">
+                            <div class="content">Does NOT seem that great</div>
+                            <div class="author">
+                                by <b>John Smith</b> -- <a href="mailto:john@example.com">Send email</a>
+                            </div>
+                        </div>
+                        <div class="comment">
+                            <div class="content">Whining again, John...</div>
+                            <div class="author">
+                                by <b>Patty Smith</b> -- <a href="mailto:patty@example.com">Send email</a>
+                            </div>
+                        </div>
+                        <div class="comment">
+                            <div class="content">You two should take your stuff elsewhere!</div>
+                            <div class="author">
+                                by <b>Anonymous</b> -- <a>Send email</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h2>with data-js attributes</h2>
+                <div class="container" id="test2_jsdata">
+                    <h3><a href="Wrong" data-js="name,@href=link">Wrong</a></h3>
+                    <div class="summary" data-js="::html=summary">Wrong</div>
+                    <div class="comments">
+                        <div class="comment" data-js-list="comments">
+                            <div class="content" data-js="content">Wrong</div>
+                            <div class="author">
+                                by <b data-js="author">Wrong</b> -- <a href="Wrong" data-js="@href=email|mailto">Send email</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h2>with explicit rules</h2>
+                <div class="container" id="test2_rules">
+                    <h3><a href="Wrong">Wrong</a></h3>
+                    <div class="summary">Wrong</div>
+                    <div class="comments">
+                        <div class="comment">
+                            <div class="content">Wrong</div>
+                            <div class="author">
+                                by <b>Wrong</b> -- <a href="Wrong">Send email</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    and.. some gratuitous animation..
 
     <div class="foo">
         <div class="row">
@@ -32,10 +122,33 @@
 
 	<script>
 		$(function() {
-			var json = {
+            var test1 = {
+                title: 'Title',
+                subtitle: 'Subtitle',
+                text: 'Lorem Ipsum FTW!',
+                author: {
+                    name: 'John Smith',
+                    email: 'john@example.com'
+                }
+            };
+
+            $('#test1_simple').spreadJson(test1);
+
+            $.spreadJson([], test1, "#test1_jsdata");
+
+            $.spreadJson({
+                'title': 'h3',
+                'subtitle': 'h4',
+                'text': '.the-text',
+                'author.name': '.name',
+                'author.email': '.email'
+            }).spread(test1, "#test1_rules");
+
+
+			var test2 = {
 				name: 'A Great Article',
 				link: 'http://www.example.com/',
-				summary: 'Lorem Ipsum FTW!',
+				summary: 'Lorem Ipsum <b><i>FTW!</i></b>',
 				comments: [
                     { author: 'John Smith', email: 'john@example.com', content: 'Does NOT seem that great' },
                     { author: 'Patty Smith', email: 'patty@example.com', content: 'Whining again, John...' },
@@ -43,22 +156,26 @@
 				]
 			};
 
+            $.spreadJson([], test2, "#test2_jsdata");
+
+            var mailto = $.spreadJson.filters.mailto;
+            
 			setTimeout(function() {
 				$.spreadJson({
-					'name': 'h1 a',
-					'link': '@href',
+					'name': 'h3 a',
+					'link': 'h3 a@href',
 					'summary': '.summary::html',
 					'comments[]': {
 						'template': '.comment',
 						'spread': {
-							'author': '.author a',
-							'email': { '.author a@href': [ null, function(email) { return 'mailto:' + email } ] },
+							'author': '.author b',
+							'email': { '.author a@href': [ null, mailto ] },
 							'content': '' // should be the same as .content::text
 						}
 					},
 					'comments?': '.comments::show()'
-				}, json);
-			}, 0);
+				}, test2, '#test2_rules');
+			}, 500);
 
             var callback = $.spreadJson({
                 'rows[]': {
