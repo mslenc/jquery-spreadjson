@@ -214,7 +214,9 @@
                 'title': 'h3',
                 'subtitle': 'h4',
                 'text': '.the-text',
-                'author.name': '.name',
+                'author.name': function(name, container) {
+                    container.find('.name').text(name);
+                },
                 'author.email': '.email'
             }).spread(test1, "#test1_rules");
 

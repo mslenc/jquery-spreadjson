@@ -30,7 +30,7 @@ var isFunction = function(obj) {
     return toString.call(obj) === '[object Function]';
 };
 var isObject = function(obj) {
-    return Object(obj) === obj;
+	return typeof obj === 'object' && !!obj;
 };
 var is = function(obj, klass) {
     return obj instanceof klass;
@@ -354,6 +354,9 @@ var addAction = function(actionSpec, props, out) {
             addActionString(actionSpec, props, out);
         }
     } else
+    if (isFunction(actionSpec)) {
+        addActionCallback(actionSpec, props, out);
+    } else
     if (isObject(actionSpec)) {
         if (props.isArray) {
             addActionArray(actionSpec, props, out);
@@ -362,9 +365,6 @@ var addAction = function(actionSpec, props, out) {
                 if (has(actionSpec, key))
                     addActionSelector(key, actionSpec[key], props, out);
         }
-    } else
-    if (isFunction(actionSpec)) {
-        addActionCallback(actionSpec, props, out);
     } else {
         // ???
     }
