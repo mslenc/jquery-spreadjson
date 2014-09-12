@@ -623,7 +623,7 @@ $.spreadJson = function(rules, json, container) {
     return spreader;
 };
 
-$.fn.spreadJson = function(rules, json, container) {
+$.fn.spreadJson = function(rules, json) {
     if (arguments.length == 1) {
         json = rules;
         rules = autoRulesFromJson(json);
