@@ -160,6 +160,14 @@ need in there.
 <a data-js='@href=author.email|mailto'></a>
 ````
 
+#### data-js='@class(css-class)=json.path'
+To add or remove a CSS class based on truthiness of the JSON value. If the
+value is truthy, the class is added. If it is falsy, it is removed.
+
+#### data-js='@class(truthy-class/falsy-class)=json.path'
+To switch between classes. If the value is truthy, first class is added and
+the second removed, and vice-versa.
+
 #### data-js='foo,@attr=bar,::show()=baz?,span.child::html=json.path_html'
 
 You can combine multiple rules with a comma. And the truth is that
@@ -473,6 +481,13 @@ terms of it.
 If the action specification is a string instead of an object, it is equivalent 
 to `{ "the string": [] }`, which basically means it passes the data in 
 unmodified.
+
+#### "selector@class(some-class)"
+#### "selector@class(truthy-class/falsy-class)"
+
+Modifies CSS classes. The first form adds the class if the value is truthy,
+and removes it otherwise. The second form adds the first class and removes the
+second if the value is truthy, and does the opposite if the value is falsy. 
 
 #### "selector::funcName()"
 

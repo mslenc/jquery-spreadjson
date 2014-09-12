@@ -52,6 +52,24 @@
             font-size: 90%;
         }
 
+        .author.known.female b {
+            color: blueviolet;
+        }
+
+        .author.known.male b {
+            color: darkgreen;
+        }
+
+        .author.unknown b {
+            color: gray;
+        }
+        .author.unknown.male b {
+            color: red;
+        }
+        .author.unknown.female b {
+            color: red;
+        }
+
         .foo {
             font-size: 10px;
             line-height: 10px;
@@ -113,19 +131,19 @@
                     <div class="comments">
                         <div class="comment">
                             <div class="content">Does NOT seem that great</div>
-                            <div class="author">
+                            <div class="author known male">
                                 by <b>John Smith</b> -- <a href="mailto:john@example.com">Send email</a>
                             </div>
                         </div>
                         <div class="comment">
                             <div class="content">Whining again, John...</div>
-                            <div class="author">
+                            <div class="author known female">
                                 by <b>Patty Smith</b> -- <a href="mailto:patty@example.com">Send email</a>
                             </div>
                         </div>
                         <div class="comment">
                             <div class="content">You two should take your stuff elsewhere!</div>
-                            <div class="author">
+                            <div class="author unknown">
                                 by <b>Anonymous</b> -- <a style="display:none">Send email</a>
                             </div>
                         </div>
@@ -139,7 +157,7 @@
                     <div class="comments">
                         <div class="comment" data-js-list="comments">
                             <div class="content" data-js="content">Wrong</div>
-                            <div class="author" data-js="b=author,::show()=author?" style="display:none">
+                            <div class="author" data-js="b=author,::show()=author?,@class(known/unknown)=known,@class(male)=male,@class(female)=female" style="display:none">
                                 by <b>Wrong</b> -- <a href="Wrong" data-js="@href=email|mailto,::hide()=email!">Send email</a>
                             </div>
                         </div>
@@ -206,9 +224,9 @@
 				link: 'http://www.example.com/',
 				summary: 'Lorem Ipsum <b><i>FTW!</i></b>',
 				comments: [
-                    { author: 'John Smith', email: 'john@example.com', content: 'Does NOT seem that great' },
-                    { author: 'Patty Smith', email: 'patty@example.com', content: 'Whining again, John...' },
-                    { author: 'Anonymous', content: 'You two should take your stuff elsewhere!' }
+                    { author: 'John Smith', email: 'john@example.com', content: 'Does NOT seem that great', known: true, male: true },
+                    { author: 'Patty Smith', email: 'patty@example.com', content: 'Whining again, John...', known: true, female: true },
+                    { author: 'Anonymous', content: 'You two should take your stuff elsewhere!', known: false }
 				]
 			};
 
@@ -227,7 +245,10 @@
                         'author?': '::show()',
                         'email': { '.author a@href': [ null, mailto ] },
                         'email!': 'a::hide()',
-                        'content': '' // should be the same as .content::text
+                        'content': '', // should be the same as .content::text
+                        'known': '.author@class(known/unknown)',
+                        'male': '.author@class(male)',
+                        'female': '.author@class(female)'
                     }
                 },
                 'comments?': '.comments::show()'

@@ -177,17 +177,43 @@ var addActionSelector = function(selector, value, props, out) {
     }
 
     if (hasAttr) { // set attribute
-        addActionCallback(function(data, container) {
-            var attrVal = filter(data);
-            if (attrVal === undefined)
-                return;
-
-            if (attrVal === null) {
-                finder(container).removeAttr(name);
+        if (beginsWith(name, 'class(') && endsWith(name, ')')) {
+            var className = name.substring(6, name.length - 1).trim();
+            var classNames = className.split('/');
+            if (classNames.length == 2) {
+                classNames[0] = classNames[0].trim();
+                classNames[1] = classNames[1].trim();
+                addActionCallback(function(data, container) {
+                    var val = filter(data);
+                    var $el = finder(container);
+                    var f = falsy(val);
+                    $el.addClass(classNames[f ? 1 : 0]);
+                    $el.removeClass(classNames[f ? 0 : 1]);
+                }, props, out);
             } else {
-                finder(container).attr(name, attrVal);
+                addActionCallback(function(data, container) {
+                    var val = filter(data);
+                    var $el = finder(container);
+                    if (falsy(val)) {
+                        $el.removeClass(className);
+                    } else {
+                        $el.addClass(className);
+                    }
+                }, props, out);
             }
-        }, props, out);
+        } else {
+            addActionCallback(function (data, container) {
+                var attrVal = filter(data);
+                if (attrVal === undefined)
+                    return;
+                var $el = finder(container);
+                if (attrVal === null) {
+                    $el.removeAttr(name);
+                } else {
+                    $el.attr(name, attrVal);
+                }
+            }, props, out);
+        }
         return;
     }
 
