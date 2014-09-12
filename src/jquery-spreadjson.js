@@ -17,18 +17,19 @@
 (function($, undefined) {
 
 // some utilities..
-var toString = Object.prototype.toString;
-var hasOwnProperty = Object.prototype.hasOwnProperty;
+var ObjProto = Object.prototype;
+var toString = ObjProto.toString;
+var hasOwnProperty = ObjProto.hasOwnProperty;
 
-var isArray = Array.isArray || function(obj) {
-    return toString.call(obj) === '[object Array]';
-};
-var isString = function(obj) {
-    return toString.call(obj) === '[object String]';
-};
-var isFunction = function(obj) {
-    return toString.call(obj) === '[object Function]';
-};
+var makeIs = function(what) {
+    var expect = '[object ' + what + ']';
+    return function(obj) {
+        return toString.call(obj) === expect;
+    }
+}
+var isArray = Array.isArray || makeIs('Array');
+var isString = makeIs('String');
+var isFunction = makeIs('Function');
 var isObject = function(obj) {
 	return typeof obj === 'object' && !!obj;
 };
@@ -258,6 +259,11 @@ var buildJoiner = function(spec) {
     };
 };
 
+var callCallback = function(callback, param, param2) {
+	if (callback)
+		callback(param, param2);
+};
+
 var makeArrayHandler = function(spec, elsFinder, deepClone, fallback) {
     var spreader = spec.spread;
 
@@ -274,10 +280,8 @@ var makeArrayHandler = function(spec, elsFinder, deepClone, fallback) {
         var leave = Math.max(1, Math.min(array.length, domEls.length));
         for (i = domEls.length - 1; i >= leave; i--) {
             domCont = $(domEls[i]);
-            if (spec.beforeUpdate)
-                spec.beforeUpdate(domCont, null);
-            if (spec.beforeDelete)
-                spec.beforeDelete(domCont);
+			callCallback(spec.beforeUpdate, domCont, null);
+			callCallback(spec.beforeDelete, domCont, undefined);
             domCont.remove();
         }
 
@@ -291,11 +295,9 @@ var makeArrayHandler = function(spec, elsFinder, deepClone, fallback) {
         domEls.length = leave;
         for (i = 0; i < domEls.length; i++) {
             domCont = $(domEls[i]);
-            if (spec.beforeUpdate)
-                spec.beforeUpdate(domCont, array[i]);
+			callCallback(spec.beforeUpdate, domCont, array[i]);
             spreader.spread(array[i], domCont);
-            if (spec.afterUpdate)
-                spec.afterUpdate(domCont, array[i]);
+			callCallback(spec.afterUpdate, domCont, array[i]);
         }
 
         var last = $(domEls[domEls.length - 1]);
@@ -305,10 +307,8 @@ var makeArrayHandler = function(spec, elsFinder, deepClone, fallback) {
             last = domCont;
 
             spreader.spread(array[i], domCont);
-            if (spec.afterCreate)
-                spec.afterCreate(domCont, array[i]);
-            if (spec.afterUpdate)
-                spec.afterUpdate(domCont, array[i]);
+			callCallback(spec.afterCreate, domCont, array[i]);
+			callCallback(spec.afterUpdate, domCont, array[i]);
         }
     }
 };
@@ -402,18 +402,19 @@ var addPath = function(pathWithSuffix) {
 };
 
 Spreader.prototype.add = function() {
-    if (arguments.length < 1)
+    var args = arguments;
+    if (args.length < 1)
         return this;
 
-    if (isString(arguments[0])) {
-        if (arguments.length === 1) {
-            addPath.call(this, arguments[0], pathToClass(extractSuffix(arguments[0]).path));
+    if (isString(args[0])) {
+        if (args.length === 1) {
+            addPath.call(this, args[0], pathToClass(extractSuffix(args[0]).path));
         } else {
-            addPath.apply(this, arguments);
+            addPath.apply(this, args);
         }
     } else {
-        for (var i = 0; i < arguments.length; i++) {
-            var arg = arguments[i];
+        for (var i = 0; i < args.length; i++) {
+            var arg = args[i];
             if (isArray(arg)) {
                 for (var j = 0; j < arg.length; j++)
                     this.add(arg[j]);
@@ -616,9 +617,10 @@ var autoRulesFromJson = function(json) {
 
 $.spreadJson = function(rules, json, container) {
     var spreader = new Spreader();
-    if (arguments.length > 0)
+	var args = arguments;
+    if (args.length > 0)
         spreader.add(rules);
-    if (arguments.length > 1)
+    if (args.length > 1)
         spreader.spread(json, container);
     return spreader;
 };
