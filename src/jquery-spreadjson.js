@@ -481,7 +481,7 @@ var doDataList = function(json, arrayPath, container) {
     if (!arrHandler) {
         var spec = { spread: { spread: doData } };
         var elsFinder = function() {
-            return container.parent().find('[data-js-list=' + arrayPath + ']')
+            return container.parent().find('[data-js-list="' + arrayPath + '"]')
         };
         arrHandler = makeArrayHandler(spec, elsFinder, true, []);
         arrHandler.path = arrayPath && arrayPath.split(".") || [];
